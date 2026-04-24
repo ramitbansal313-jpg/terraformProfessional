@@ -1,0 +1,238 @@
+Task 1 — Import Bastion Host EC2 Instance
+
+Part A — Import with Hardcoded AMI
+
+Step 1 — Write the import block
+
+Create or update imports.tf with the following:
+# imports.tf
+
+import {
+  to = aws_instance.web
+  id = "i-07e9ebbaaa6dad13c"
+}
+
+Step 2 — Run terraform plan (first time)
+terraform plan
+Since no resource block exists yet for aws_instance.web, Terraform will prompt you to auto-generate the configuration:
+
+
+╷
+│ Error: Configuration for import target does not exist
+│
+│ The configuration for the given import target aws_instance.web does not
+│ exist. If you wish to automatically generate the configuration for this
+│ resource, use the -generate-config-out option.
+╵
+
+Step 3 — Generate the configuration
+Run the following command to auto-generate the resource block into a new file:
+terraform plan -generate-config-out=generated.tf
+This creates a generated.tf file with all attributes pulled from the real EC2 instance in AWS.
+
+Step 4 — Fix conflicting attributes in generated.tf
+Open generated.tf. The auto-generated file will contain conflicting arguments that must be commented out or removed. Based on the errors you will encounter:
+
+│ Error: Conflicting configuration arguments
+│ "ipv6_address_count": conflicts with ipv6_addresses
+│ "private_dns_name_options": conflicts with ...
+│ "cpu_core_count": conflicts with cpu_threads_per_core
+Comment out the conflicting fields. The most common ones to remove/comment are:
+
+
+# Comment out these conflicting attributes in generated.tf:
+# ipv6_address_count      = 0       ← conflicts with ipv6_addresses
+# private_dns_name_options = {}     ← conflicts with hostname_type
+💡 Tip: Keep removing/commenting any attribute that Terraform flags as conflicting and re-run terraform plan until no errors remain.
+
+Step 5 — Run terraform plan again
+terraform plan
+
+Expected output:
+aws_instance.web: Preparing import... [id=i-07e9ebbaaa6dad13c]
+aws_instance.web: Refreshing state... [id=i-07e9ebbaaa6dad13c]
+
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+
+Step 6 — Run terraform apply
+terraform apply -auto-approve
+
+Expected output:
+aws_instance.web: Importing... [id=i-07e9ebbaaa6dad13c]
+aws_instance.web: Import complete [id=i-07e9ebbaaa6dad13c]
+
+Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
+
+
+...............................
+
+
+Part B — Refactor to Dynamic AMI
+Step 7 — Create the data source
+
+Create data.tf with the following:
+
+
+# data.tf
+data "aws_ami" "example" {
+  name_regex       = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-20260313"
+  owners           = ["099720109477"]
+}
+
+Pickup the name_tegex from ec2 UI console and the owner ID in AMI EC2 Console.
+
+
+Step 8 — Update the AMI reference in generated.tf
+Find the ami line in generated.tf and replace the hardcoded value with the data source reference:
+
+# generated.tf — Before
+ami = "ami-05d2d839d4f73aafb"   # hardcoded
+
+# generated.tf — After
+ami = data.aws_ami.example.id   # dynamic
+
+Step 9 — Run terraform plan
+terraform plan
+
+Expected output:
+data.aws_ami.example: Reading...
+data.aws_ami.example: Read complete after 1s [id=ami-05d2d839d4f73aafb]
+aws_instance.web: Refreshing state... [id=i-07e9ebbaaa6dad13c]
+
+No changes. Your infrastructure matches the configuration.
+✅ Task 1 Complete
+
+
+..........................
+
+Task 2 — Import Launch Template and Auto Scaling Group
+Step 1 — Add import blocks
+
+Append to imports.tf:
+# imports.tf (append)
+
+import {
+  to = aws_launch_template.example
+  id = "lt-0f5566dcbc56782b9"
+}
+
+import {
+  to = aws_autoscaling_group.example
+  id = "testASG"
+}
+⚠️ Important: The ASG import ID is always the ASG Name (testASG), NOT the Launch Template ID.
+
+Step 2 — Generate config for both resources
+terraform plan -generate-config-out=generated2.tf
+
+Step 3 — Fix conflicting attributes in generated2.tf
+The auto-generated ASG config will contain the following conflicts that must be removed/commented out:
+# ❌ REMOVE — conflicts with vpc_zone_identifier
+availability_zones = ["ap-south-1a"]
+
+# Inside launch_template block:
+# ❌ REMOVE — cannot use both id and name together
+name = "MyTemplate"
+
+Your cleaned generated2.tf should have the ASG block like this:
+
+resource "aws_launch_template" "example" {
+  name          = "MyTemplate"
+  image_id      = data.aws_ami.example.id
+  instance_type = "t3.micro"
+  vpc_security_group_ids = ["sg-0fa8ffd50a836f572"]
+}
+
+resource "aws_autoscaling_group" "example" {
+  name             = "testASG"
+  desired_capacity = 1
+  min_size         = 1
+  max_size         = 1
+
+  # ✅ Only vpc_zone_identifier — availability_zones removed
+  vpc_zone_identifier = ["subnet-xxxxxxxx"]
+
+  launch_template {
+    id      = aws_launch_template.example.id   # ✅ only id, name removed
+    version = "$Default"
+  }
+}
+
+Step 4 — Run terraform plan
+
+terraform plan
+
+Expected output:
+data.aws_ami.example: Reading...
+data.aws_ami.example: Read complete after 1s [id=ami-05d2d839d4f73aafb]
+aws_instance.web: Refreshing state... [id=i-07e9ebbaaa6dad13c]
+aws_launch_template.example: Refreshing state... [id=lt-0f5566dcbc56782b9]
+aws_autoscaling_group.example: Refreshing state... [id=testASG]
+
+Plan: 2 to import, 0 to add, 0 to change, 0 to destroy.
+
+Step 5 — Run terraform apply
+terraform apply -auto-approve
+
+Expected output:
+
+Apply complete! Resources: 2 imported, 0 added, 0 changed, 0 destroyed.
+✅ Task 2 Complete
+
+
+...........................................
+
+Task 3 — Lifecycle Rule on Auto Scaling Group
+Step 1 — Update desired_capacity and add lifecycle block
+In generated2.tf, update the aws_autoscaling_group.example resource:
+
+resource "aws_autoscaling_group" "example" {
+  name             = "testASG"
+  desired_capacity = 2       # ← Changed from 1 to 2
+  min_size         = 1
+  max_size         = 1
+
+  vpc_zone_identifier = ["subnet-xxxxxxxx"]
+
+  launch_template {
+    id      = aws_launch_template.example.id
+    version = "$Default"
+  }
+
+  # ✅ Lifecycle block — prevents Terraform from enforcing desired_capacity
+  lifecycle {
+    ignore_changes = [desired_capacity]
+  }
+}
+
+Step 2 — Run terraform plan
+terraform plan
+Expected output:
+
+data.aws_ami.example: Reading...
+data.aws_ami.example: Read complete after 1s [id=ami-05d2d839d4f73aafb]
+aws_instance.web: Refreshing state... [id=i-07e9ebbaaa6dad13c]
+aws_launch_template.example: Refreshing state... [id=lt-0f5566dcbc56782b9]
+aws_autoscaling_group.example: Refreshing state... [id=testASG]
+
+No changes. Your infrastructure matches the configuration.
+💡 Even though desired_capacity = 2 in code but 1 is running in AWS, Terraform shows No changes because of ignore_changes = [desired_capacity].
+
+Step 3 — Run terraform apply
+terraform apply -auto-approve
+Expected output:
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+✅ Task 3 Complete
+
+
+..................
+🏁 Final Verification
+terraform state list
+data.aws_ami.example
+aws_instance.web
+aws_launch_template.example
+aws_autoscaling_group.example
+
+terraform plan
+text
+No changes. Your infrastructure matches the configuration.
