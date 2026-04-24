@@ -1,0 +1,62 @@
+Task1:
+
+Step 1 — Update the resource type in main.tf
+
+Find every occurrence of aws_s3_bucket_object and replace with aws_s3_object:
+# BEFORE
+resource "aws_s3_bucket_object" "my_object" {
+  bucket       = aws_s3_bucket.my_bucket.id
+  key          = "app/config.json"
+  content      = "Hello World"
+  content_type = "text/plain"
+}
+
+# AFTER
+resource "aws_s3_object" "my_object" {
+  bucket       = aws_s3_bucket.my_bucket.id
+  key          = "app/config.json"
+  content      = "Hello World"
+  content_type = "text/plain"
+}
+💡 Replace in every place it appears in the given file — there may be multiple occurrences
+
+Step 2 — Update provider version in versions.tf
+# BEFORE
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.0"     # ← old
+    }
+  }
+}
+
+# AFTER
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"     # ← updated
+    }
+  }
+}
+
+Step 3 — Run terraform init -upgrade
+terraform init -upgrade
+Expected output:
+- Installing hashicorp/aws v5.x.x...
+- Installed hashicorp/aws v5.x.x
+
+Terraform has been successfully initialized!
+
+Step 4 — Run terraform validate
+terraform validate
+Expected output:
+Success! The configuration is valid.
+
+.....................................................
+
+
+
+
+
