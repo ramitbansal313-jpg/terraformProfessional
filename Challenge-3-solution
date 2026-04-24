@@ -57,6 +57,73 @@ Success! The configuration is valid.
 .....................................................
 
 
+Task2 :
+
+providers.tf — Root Module
+
+provider "aws" {
+  alias = "infra"
+  shared_config_files      = ["~/.aws/config"]
+  shared_credentials_files = ["~/shared/credentials"]
+  profile                  = "infra-access"
+}
+
+provider "aws" {
+  alias                    = "iam"
+  shared_config_files      = ["~/.aws/config"]
+  shared_credentials_files = ["~/shared/credentials"]
+  profile                  = "iam-access"
+}
+
+main.tf — Root Module
+
+# Every resource needs explicit provider
+resource "aws_vpc" "main" {
+  provider = aws.infra    
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_instance" "app_server" {
+  provider = aws.infra   
+  ami           = "ami-05d2d839d4f73aafb"
+  instance_type = "t3.micro"
+}
+
+resource "aws_iam_role" "example" {
+  provider = aws.iam      
+  name     = "example-role"
+}
+
+module "app" {
+  source = "./modules/app"
+  providers = {
+    aws = aws.infra          # ✅ your correct syntax
+  }
+}
+
+child module
+# modules/app/main.tf
+terraform {
+  required_providers {
+    aws = {
+      configuration_aliases = [aws]    # child accepts "aws" from root
+    }
+  }
+}
+
+# ✅ NO provider argument needed on any of these
+# They all automatically use aws.infra passed from root
+
+resource "aws_instance" "server" {
+  ami           = "ami-05d2d839d4f73aafb"
+  instance_type = "t3.micro"
+}
+
+resource "aws_s3_bucket" "app" {
+  bucket = "my-app-bucket"
+}
+
+
 
 
 
