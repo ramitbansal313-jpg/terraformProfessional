@@ -1,0 +1,38 @@
+Your organization has been managing AWS infrastructure manually through the AWS Console. You have been tasked with bringing existing infrastructure under Terraform management.
+The following resources already exist in your AWS account in the ap-south-1 region (region may be different in the actual exam):
+
+A Bastion Host EC2 instance used for SSH access
+A Launch Template named MyTemplate used to define instance configuration
+An Auto Scaling Group named testASG using the above Launch Template
+You must import all these resources into Terraform state, ensure configuration is dynamically driven (no hardcoded values where avoidable), 
+and apply appropriate lifecycle rules to prevent Terraform from overriding runtime scaling decisions.
+
+
+
+Task 1 — Import Bastion Host EC2 Instance
+
+Part A — Import the EC2 Instance:
+Write an import block in imports.tf to import the existing EC2 Bastion Host into the Terraform resource address aws_instance.web
+Run terraform plan and terraform apply — confirm the import is successful with 0 changes
+.............................
+
+Part B — Refactor to Dynamic AMI:
+Replace the hardcoded AMI ID with a data block to fetch the AMI dynamically
+Run terraform apply — it must show No changes
+.......................
+
+
+Task 2 — Import Launch Template and Auto Scaling Group
+Write import blocks in imports.tf to import the following two resources into Terraform state:
+aws_launch_template.example
+aws_autoscaling_group.example
+Run terraform plan and terraform apply — confirm No changes for both resources
+............................
+
+Task 3 — Apply Lifecycle Rule to Auto Scaling Group
+The Auto Scaling Group currently has desired_capacity = 1 in both the Terraform config and in AWS. 
+Your team wants to document a scale-out intent of desired_capacity = 2 in the Terraform code, but must not allow Terraform to enforce this value on every apply, 
+since the Auto Scaling service manages capacity dynamically at runtime.
+Change desired_capacity from 1 to 2 in the aws_autoscaling_group.example resource block
+Add an appropriate lifecycle block so that Terraform ignores any changes made to desired_capacity
+Run terraform plan — it must show No changes. Your infrastructure matches the configuration.
