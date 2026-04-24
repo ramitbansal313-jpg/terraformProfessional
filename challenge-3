@@ -40,12 +40,9 @@ aws_secret_access_key = XXXX
 
 
 Task 1 — Migrate Deprecated S3 Resource
-The current Terraform configuration in modules/app/main.tf uses the aws_s3_bucket_object resource type
-The existing aws_s3_bucket_object resource has already been applied and the S3 object exists in AWS
-You must migrate the resource to use the newer aws_s3_object resource type
-The migration must not delete or recreate the existing S3 object in AWS
-Update the required_providers block to use a newer AWS provider version, or remove the version constraint and run the appropriate Terraform command to upgrade the provider plugins
-After migration, terraform plan must show No changes
+Prepare for a scenario where you have a resource of type aws_s3_bucket_object (deprecated) that uses the older AWS provider version, 
+and you have to update it to use aws_s3_object resource type without potentially deleting the resource created 
+using aws_s3_bucket_object.
 
 ....................................................
 
