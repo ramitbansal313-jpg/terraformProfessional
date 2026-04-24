@@ -1,0 +1,73 @@
+Your organization is modernizing its Terraform codebase. You have been given a  Terraform project that uses resource types 
+and provider configurations. Your job is to fix the configuration without destroying any existing infrastructure.
+
+Project Structure:
+project-root/
+│
+├── main.tf                # Root module
+├── providers.tf           # Provider configuration
+│
+├── modules/
+│   └── app/
+│       ├── main.tf        # Child module (contains resources)
+│       └── variables.tf
+│
+├── .aws/
+│   └── config             # AWS config file with 2 profiles
+│
+└── shared/
+    └── credentials        # AWS credentials file
+
+
+AWS Configuration
+.aws/config — Contains two profiles:
+
+[profile infra-access]
+role_arn       = arn:aws:iam::123456789012:role/InfraRole
+source_profile = default
+region         = us-east-1
+
+[profile iam-access]
+role_arn       = arn:aws:iam::123456789012:role/IAMRole
+source_profile = default
+region         = us-east-1
+
+
+shared/credentials — Contains the base credentials:
+[default]
+aws_access_key_id     = XXXX
+aws_secret_access_key = XXXX
+
+
+Task 1 — Migrate Deprecated S3 Resource
+The current Terraform configuration in modules/app/main.tf uses the aws_s3_bucket_object resource type
+The existing aws_s3_bucket_object resource has already been applied and the S3 object exists in AWS
+You must migrate the resource to use the newer aws_s3_object resource type
+The migration must not delete or recreate the existing S3 object in AWS
+Update the required_providers block to use a newer AWS provider version, or remove the version constraint and run the appropriate Terraform command to upgrade the provider plugins
+After migration, terraform plan must show No changes
+
+....................................................
+
+Task 2 — Configure Multiple AWS Providers
+The providers.tf file currently has an incomplete provider configuration. You must:
+Define two separate AWS provider blocks — one for each AWS profile:
+Provider 1 using profile: infra-access
+Provider 2 using profile: iam-access
+Both providers must reference:
+The shared config file: ~/.aws/config
+The shared credentials file: ~/shared/credentials
+Assign appropriate aliases to each provider so they can be referenced individually
+
+Configure the resources in the root module (main.tf) and child module (modules/app/) to use the correct provider:
+Infrastructure resources (e.g., VPC, EC2) → use the infra-access profile
+IAM resources → use the iam-access profile
+
+.........................................
+
+Task 3 — Pass Provider to Child Module
+The child module at modules/app/ needs to use a specific provider from the root module.
+Pass the correct provider configuration from the root module to the child module using the providers argument in the module block
+Ensure all 8 resources inside the child module use the provider associated with the infra-access profile
+
+After all changes, run terraform init and terraform plan — the output must show No changes or only expected additions
