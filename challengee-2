@@ -13,7 +13,7 @@ challenge-2/
 Task 1 — Create VPC Security Group Ingress Rules from CSV
 The sg.csv file contains the following security group rule definitions:
 
-direction,port,protocol,application,source,destination,ticket
+direction,port,protocol,cidr_block,source,destination,ticket
 in,80,tcp,app,0.0.0.0/0,10.0.1.10,T1
 in,22,tcp,mgmt,192.168.1.0/24,10.0.1.10,T2
 out,443,tcp,app,10.0.1.10,0.0.0.0/0,T3
@@ -22,33 +22,30 @@ out,53,udp,app,10.0.1.10,8.8.8.8,T7
 in,443,tcp,app,0.0.0.0/0,10.0.1.30,T8
 in,8080-8082,tcp,app,0.0.0.0/0,10.0.1.40,T11
 in,1521,tcp,db,10.0.3.0/24,10.0.1.50,T12
-out,110,tcp,app,10.0.1.10,0.0.0.0/0,T13
-out,143,tcp,app,10.0.1.10,0.0.0.0/0,T15
 in,25,tcp,app,0.0.0.0/0,10.0.1.60,T18
 in,53,udp,mgmt,192.168.1.0/24,10.0.1.10,T19
 in,8081,tcp,app,10.1.0.0/16,10.0.1.70,T20
-out,993,tcp,app,10.0.1.10,0.0.0.0/0,T17
 in,8443,tcp,app,0.0.0.0/0,10.0.1.80,T21
-out,25,tcp,app,10.0.1.10,0.0.0.0/0,T10
 in,27017,tcp,db,10.0.4.0/24,10.0.1.90,T22
 in,6379,tcp,db,10.0.5.0/24,10.0.1.95,T23
 
-  
 Using the aws_vpc_security_group_ingress_rule resource type, perform the following:
-Read the sg.csv file using an appropriate Terraform function
-
+Read the sg.csv file using appropriate Terraform functions
 Create ingress rules only — ignore all rows where direction = out
-Assign each rule to the correct Security Group based on the application column:
+The cidr_block column value in CSV determines which subnet CIDR to use as cidr_ipv4 for the rule, based on the following mapping:
 
-application value	Security Group
-app	app-sg
-db	db-sg
-mgmt	mgmt-sg
-  
-Use the source column value as the cidr_ipv4 for each rule
-Use the port column for from_port and to_port
-Use the ticket column value as a tag named ticket on each rule
+cidr_block value	cidr_ipv4 to use
+
+app	CIDR block of app-subnet
+database	CIDR block of database-subnet
+monitoring	CIDR block of central-subnet
+anti-virus	CIDR block of central-subnet
+
+Use the source column as the Security Group to associate the rule with
 Handle port ranges (e.g., 8080-8082) by correctly splitting into from_port and to_port
+Tag each rule with the ticket column value using a tag named ticket
+Use for_each to create all rules dynamically — do not create individual resource blocks per rule  
+
 
 
 Task 2 — Generate List of Maps Output from CSV
