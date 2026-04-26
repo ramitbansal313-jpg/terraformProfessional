@@ -1,0 +1,52 @@
+Task 1 - Create Folders Based on Following Structure
+Create the following folder structure within the challenge-5 directory:
+
+challenge-5
+├── base-folder
+├── infra
+│   ├── vpc-infra
+│   └── others
+└── modules
+    ├── vpc
+    ├── ec2
+    └── sg
+
+Task 8 - Refactor Code
+Move the following resource types from the base-folder into vpc child module.
+Resource Types	Child Module Folder
+aws_vpc	vpc
+aws_subnet	vpc
+
+
+Move the following resource types from the base-folder into ec2 child module.
+Resource Types	Child Module Folder
+aws_instance	ec2
+
+Move the following resource types from the base-folder into sg child module.
+Resource Types	Child Module Folder
+aws_security_group	sg
+aws_vpc_security_group*	sg
+
+
+..............................
+Task 9 - Use S3 Backend for VPC-Infra
+Manually create S3 bucket in your AWS Account.
+
+In the infra/vpc-infra folder:
+
+Call the vpc child module using module sources
+Import existing VPC and subnet resources
+Configure S3 backend where state file is stored in vpc.tfstate
+Migrate local state to S3 backend
+
+
+Task 10 - Import EC2 and SG Infrastructure
+In infra/others folder:
+
+Reference to the ec2 and sg child modules using module sources.
+Use terraform_remote_state to fetch subnet IDs from vpc.tfstate
+Define terraform_remote_state in root module only and not child.
+Import existing EC2 and security group resources
+Tip
+
+Ensure outputs in vpc.tfstate contain the subnet_ids of both the subnets
