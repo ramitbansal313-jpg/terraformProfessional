@@ -1,0 +1,33 @@
+Task1:
+
+
+locals {
+  csvdata = csvdecode(file("sg.csv"))
+
+  subnet_cidr = {
+    app  = data.aws_subnet.app.cidr_block
+    db   = data.aws_subnet.db.cidr_block
+    mgmt = data.aws_subnet.mgmt.cidr_block
+  }
+
+  filtered_data = [for row in local.csvdata : {
+    port      = row.port
+    protocol  = row.protocol
+    cidr_ipv4 = local.subnet_cidr[row.cidr_block]
+    ticket    = row.ticket
+  } if row.direction == "in"]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "example" {
+  for_each = { for index, value in local.filtered_data : index => value }
+
+  security_group_id = aws_security_group.example.id
+  cidr_ipv4         = each.value.cidr_ipv4
+  from_port         = tonumber(split("-", each.value.port)[0])
+  ip_protocol       = each.value.protocol
+  to_port           = tonumber(try(split("-", each.value.port)[1], split("-", each.value.port)[0]))
+
+  tags = {
+    ticket = each.value.ticket
+  }
+}
