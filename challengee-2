@@ -1,0 +1,105 @@
+Your organization manages AWS network security rules through a centralized CSV file. You have been tasked with automating the creation of VPC Security Group rules, 
+  generating structured outputs from CSV data, and fetching existing subnet information using data sources.
+
+The following files are provided:
+
+challenge-2/
+├── main.tf
+├── outputs.tf
+├── sg.csv              ← Security group rules definition file
+├── instances.csv       ← Instance details CSV file
+└── variables.tf
+
+Task 1 — Create VPC Security Group Ingress Rules from CSV
+The sg.csv file contains the following security group rule definitions:
+
+direction,port,protocol,application,source,destination,ticket
+in,80,tcp,app,0.0.0.0/0,10.0.1.10,T1
+in,22,tcp,mgmt,192.168.1.0/24,10.0.1.10,T2
+out,443,tcp,app,10.0.1.10,0.0.0.0/0,T3
+in,3306,tcp,db,10.0.2.0/24,10.0.1.20,T5
+out,53,udp,app,10.0.1.10,8.8.8.8,T7
+in,443,tcp,app,0.0.0.0/0,10.0.1.30,T8
+in,8080-8082,tcp,app,0.0.0.0/0,10.0.1.40,T11
+in,1521,tcp,db,10.0.3.0/24,10.0.1.50,T12
+out,110,tcp,app,10.0.1.10,0.0.0.0/0,T13
+out,143,tcp,app,10.0.1.10,0.0.0.0/0,T15
+in,25,tcp,app,0.0.0.0/0,10.0.1.60,T18
+in,53,udp,mgmt,192.168.1.0/24,10.0.1.10,T19
+in,8081,tcp,app,10.1.0.0/16,10.0.1.70,T20
+out,993,tcp,app,10.0.1.10,0.0.0.0/0,T17
+in,8443,tcp,app,0.0.0.0/0,10.0.1.80,T21
+out,25,tcp,app,10.0.1.10,0.0.0.0/0,T10
+in,27017,tcp,db,10.0.4.0/24,10.0.1.90,T22
+in,6379,tcp,db,10.0.5.0/24,10.0.1.95,T23
+
+  
+Using the aws_vpc_security_group_ingress_rule resource type, perform the following:
+Read the sg.csv file using an appropriate Terraform function
+
+Create ingress rules only — ignore all rows where direction = out
+Assign each rule to the correct Security Group based on the application column:
+
+application value	Security Group
+app	app-sg
+db	db-sg
+mgmt	mgmt-sg
+  
+Use the source column value as the cidr_ipv4 for each rule
+Use the port column for from_port and to_port
+Use the ticket column value as a tag named ticket on each rule
+Handle port ranges (e.g., 8080-8082) by correctly splitting into from_port and to_port
+
+
+Task 2 — Generate List of Maps Output from CSV
+The instances.csv file contains instance configuration data. Using the data from this file, create an output value in outputs.tf named instance_details 
+that generates a list of maps, where each map contains the team and type attributes for each instance.
+
+instances.csv  
+instance_type,AMI_ID,Region,Team_Name
+micro,ami-01816d07b1128cd2d,us-east-1,Security
+nano,ami-0fd05997b4dff7aac,ap-south-1,SRE
+nano,ami-09b0a86a2c84101e1,us-east-1,DevOps
+micro,ami-0995922d49dc9a17d,ap-southeast-1,SRE
+
+
+Expected output format:
+
+instance_details = [
+  {
+    "team" = "Security"
+    "type" = "micro"
+  },
+  {
+    "team" = "SRE"
+    "type" = "nano"
+  },
+  {
+    "team" = "DevOps"
+    "type" = "nano"
+  },
+  {
+    "team" = "SRE"
+    "type" = "micro"
+  },
+]
+
+
+
+Task 3 — Fetch Subnet IDs Using Data Sources
+Define data sources to fetch the IDs of two existing subnets from the pre-existing VPC.
+
+Requirements:
+Define a data source of type aws_subnet for each of the following subnets:
+subnet-subnet1
+subnet-subnet2
+Both subnets belong to the VPC named challenge-2-vpc
+Use appropriate filters to look up subnets by their Name tag
+Create an output value named subnet_ids that displays both subnet IDs as a list
+
+
+Expected output format:
+subnet_ids = [
+  "subnet-0abc123def456789a",
+  "subnet-0abc123def456789b",
+]
