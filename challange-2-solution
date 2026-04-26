@@ -31,3 +31,16 @@ resource "aws_vpc_security_group_ingress_rule" "example" {
     ticket = each.value.ticket
   }
 }
+
+
+  Task2:
+locals {
+  instancecsv = csvdecode(file("instances.csv"))
+}
+
+output "instance_details" {
+  value = [for row in local.instancecsv : {
+    "team" = row.Team_Name       # must match exact CSV header
+    "type" = row.instance_type   # must match exact CSV header
+  }]
+}
