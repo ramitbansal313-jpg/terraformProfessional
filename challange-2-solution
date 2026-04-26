@@ -44,3 +44,32 @@ output "instance_details" {
     "type" = row.instance_type   # must match exact CSV header
   }]
 }
+
+
+Task3:
+
+data "aws_subnet" "subnet1" {
+  vpc_id = "vpc-09a1e59e1fd129e7b"
+  filter {
+    name   = "tag:Name"
+    values = ["subnet-subnet1"]
+  }
+}
+
+data "aws_subnet" "subnet2" {
+  vpc_id = "vpc-09a1e59e1fd129e7b"
+  filter {
+    name   = "tag:Name"
+    values = ["subnet-subnet2"]
+  }
+}
+
+
+# outputs.tf
+
+output "subnet_ids" {
+  value = [
+    data.aws_subnet.subnet1.id,
+    data.aws_subnet.subnet2.id,
+  ]
+}
